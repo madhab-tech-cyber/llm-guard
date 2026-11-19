@@ -5,3 +5,5 @@ Day 6 provides a standalone strict YAML loader. The Member 1–3 signal interfac
 Install `policy-engine/requirements.txt` in an isolated Python environment, then run `python -m unittest discover -s tests -p 'test_policy_loader.py'`. `policy_engine.loader.load_policy(path)` returns a validated policy dictionary or raises `PolicyError`. Files are limited to 64 KiB and 100 rules. Unknown fields, duplicate keys, YAML anchors/aliases, invalid scores and unknown actions are rejected.
 
 Day 7 adds `matching_rules(policy, stage, scores)`. It returns matching rules in policy order and rejects missing or invalid required scores. It does not make a final decision; that is Day 8. Run all current tests with `python -m unittest discover -s tests -p "test_policy_*.py"`.
+
+Days 8–9 add standalone `decide(...)` and `AuditWriter`. Decisions use the first matching rule after validation, with a clean default ALLOW; blocked guard results and invalid context take BLOCK. The audit writer appends minimized JSONL records with fsync. Audit failure returns BLOCK with `audit_ok=False`. FLAG delivery and the cross-member signal adapter still need team agreement.
