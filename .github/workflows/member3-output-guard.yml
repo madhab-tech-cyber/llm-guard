@@ -28,5 +28,9 @@ jobs:
         run: python -m unittest scanners.output_guard.test_output_guard -v
       - name: Run pipeline adapter tests
         run: python -m unittest scanners.output_guard.test_pipeline_contract -v
+      - name: Run grounding fail-closed regression tests
+        run: python -m unittest scanners.output_guard.test_grounding_fail_closed -v
+      - name: Run all Output Guard tests
+        run: python3 -m unittest discover -s scanners/output_guard -p "test_*.py"
       - name: Run synthetic evaluation
         run: python -m scanners.output_guard.evaluate

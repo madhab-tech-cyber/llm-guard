@@ -16,11 +16,40 @@ class TestPII(unittest.TestCase):
         self.assertIn("[REDACTED:PHONE]", cleaned)
         self.assertEqual(found[0][0], "PHONE")
 
-    def test_pan_requires_context(self):
-        self.assertEqual(_mask_pii("ABCDE1234F"), ("ABCDE1234F", []))
-        cleaned, found = _mask_pii("PAN: ABCDE1234F")
+    def test_bare_pan_is_masked_without_context(self):
+        cleaned, found = _mask_pii("ABCDE1234F")
         self.assertIn("[REDACTED:PAN]", cleaned)
         self.assertEqual(found[0][0], "PAN")
+        self.assertNotIn("ABCDE1234F", cleaned)
+
+    def test_aadhaar_uses_correct_type_label(self):
+        cleaned, found = _mask_pii("Aadhaar test value 2345 6789 0121")
+        self.assertIn("[REDACTED:AADHAAR]", cleaned)
+        self.assertEqual(found[0][0], "AADHAAR")
+        self.assertNotIn("2345", cleaned)
+
+    def test_luhn_valid_credit_card_is_masked(self):
+        cleaned, found = _mask_pii("Card test value 4111 1111 1111 1111")
+        self.assertIn("[REDACTED:CARD]", cleaned)
+        self.assertEqual(found[0][0], "CARD")
+        self.assertNotIn("4111", cleaned)
+
+    def test_fake_api_key_is_masked_and_not_disclosed_in_findings(self):
+        value = "FAKE-1234-5678-90ab-cdef12345678"
+        result = check_output(f'api_key = "{value}"')
+        self.assertEqual(result.verdict, Verdict.REPLACE)
+        self.assertNotIn(value, result.cleaned_response)
+        self.assertTrue(any(f.checker == "secrets" and f.category == "API_KEY"
+                            for f in result.findings))
+        self.assertNotIn(value, str(result.findings))
+        self.assertNotIn(value, " ".join(result.reasons))
+
+    def test_fake_stripe_live_key_is_masked(self):
+        value = "sk_live_FAKE1234567890ab"
+        result = check_output(f"Use key {value}")
+        self.assertEqual(result.verdict, Verdict.REPLACE)
+        self.assertNotIn(value, result.cleaned_response)
+        self.assertTrue(any(f.category == "STRIPE_LIVE_KEY" for f in result.findings))
 
     def test_valid_ipv4_and_invalid_ipv4(self):
         cleaned, found = _mask_pii("Host 192.168.1.10 and 999.1.1.1")
