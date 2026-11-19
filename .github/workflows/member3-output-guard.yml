@@ -30,3 +30,7 @@ jobs:
         run: python -m unittest scanners.output_guard.test_pipeline_contract -v
       - name: Run synthetic evaluation
         run: python -m scanners.output_guard.evaluate
+      - name: Test red-team corpus
+        run: python -m unittest scanners.output_guard.test_red_team -v
+      - name: Generate red-team report
+        run: python -m scanners.output_guard.red_team
