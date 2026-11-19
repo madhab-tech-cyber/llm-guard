@@ -8,7 +8,13 @@ Run from the repository root:
 
     python -m unittest scanners.output_guard.test_output_guard -v
 
-The package entry point is scanners.output_guard.output_guard.check_output.
+Run the deterministic synthetic evaluation:
+
+    python -m scanners.output_guard.evaluate
+
+The evaluation generates 200 cases (40 each for clean, PII, threat, prompt-leakage and malformed JSON) and reports per-checker precision, recall and F1. These are synthetic pattern-coverage metrics only, not estimates of real-world performance.
+
+The package entry point is scanners.output_guard.check_output.
 
 ## Verdicts
 
