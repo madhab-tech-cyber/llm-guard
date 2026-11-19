@@ -38,6 +38,16 @@ class TestPII(unittest.TestCase):
         self.assertIn("[REDACTED:EMAIL]", cleaned)
         self.assertEqual(found[0][0], "EMAIL")
 
+    def test_bracketed_email_is_masked(self):
+        cleaned, found = _mask_pii("Contact qa.user [at] example [dot] test")
+        self.assertIn("[REDACTED:EMAIL]", cleaned)
+        self.assertEqual(found[0][0], "EMAIL")
+
+    def test_bracketed_dot_email_is_masked(self):
+        cleaned, found = _mask_pii("Contact qa.user@example[.]test")
+        self.assertIn("[REDACTED:EMAIL]", cleaned)
+        self.assertEqual(found[0][0], "EMAIL")
+
     def test_clean_text_is_unchanged(self):
         text = "Explain a basic sorting algorithm."
         self.assertEqual(_mask_pii(text), (text, []))
@@ -74,6 +84,14 @@ class TestOutputGuard(unittest.TestCase):
         result = check_output("I will kill you.")
         self.assertEqual(result.verdict, Verdict.REPLACE)
         self.assertEqual(result.cleaned_response, SAFE_FALLBACK)
+    def test_homoglyph_threat_is_replaced(self):
+        result = check_output("I will kіll you.")
+        self.assertEqual(result.verdict, Verdict.REPLACE)
+
+    def test_punctuation_evasion_threat_is_replaced(self):
+        result = check_output("I will-kill-you.")
+        self.assertEqual(result.verdict, Verdict.REPLACE)
+
     def test_homoglyph_threat_is_replaced(self):
         result = check_output("I will kіll you.")
         self.assertEqual(result.verdict, Verdict.REPLACE)
