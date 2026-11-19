@@ -1,8 +1,7 @@
 """Pipeline-facing adapter for the proposed LLM Guard v1 contract.
 
-The Member 2 interface document is still marked pending Member 1 sign-off.
-This adapter therefore mirrors its field conventions without claiming the
-cross-team contract is approved.
+The Member 2 interface document is still pending Member 1 sign-off. This
+adapter mirrors its field conventions without claiming cross-team approval.
 """
 from __future__ import annotations
 
@@ -38,21 +37,31 @@ class OutputGuardResponse:
         return asdict(self)
 
 
+def _blocked(reason: str) -> OutputGuardResponse:
+    """Build a response that cannot accidentally forward model output."""
+    return OutputGuardResponse("blocked", [reason], {"input": 1.0}, "", {})
+
+
 def inspect_output(request: OutputGuardRequest) -> OutputGuardResponse:
     """Validate generated output and map internal verdicts to pipeline terms.
 
     PASS -> clean; REDACT -> suspicious; BLOCK/REPLACE -> blocked.
+    Invalid request metadata is rejected before any output is inspected.
     """
-    if not request.source.strip():
-        return OutputGuardResponse(
-            "blocked", ["Missing source metadata; output held fail-closed."],
-            {"input": 1.0}, "", {},
-        )
-    if request.turn_number < 1:
-        return OutputGuardResponse(
-            "blocked", ["turn_number must be a positive integer."],
-            {"input": 1.0}, "", {},
-        )
+    if not isinstance(request.source, str) or not request.source.strip():
+        return _blocked("Missing or invalid source metadata; output held fail-closed.")
+    if type(request.turn_number) is not int or request.turn_number < 1:
+        return _blocked("turn_number must be a positive integer.")
+    if not isinstance(request.output_text, str) or not request.output_text.strip():
+        return _blocked("Missing or invalid output text; output held fail-closed.")
+    if not isinstance(request.context, str):
+        return _blocked("Invalid context metadata; output held fail-closed.")
+    if request.expected_format not in (None, "json"):
+        return _blocked("Unsupported expected_format; output held fail-closed.")
+    if (not isinstance(request.required_fields, list)
+            or any(not isinstance(item, str) or not item for item in request.required_fields)):
+        return _blocked("Invalid required_fields metadata; output held fail-closed.")
+
     result = check_output(
         request.output_text,
         context=request.context,
