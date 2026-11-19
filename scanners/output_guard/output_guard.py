@@ -271,11 +271,12 @@ def check_output(
             )
             scores["grounding"] = confidence
             if unsupported:
-                sample = ", ".join(unsupported[:5])
+                # Do not copy candidate values into findings or reasons.
+                # The type-only signal avoids retaining potentially sensitive text.
                 findings.append(Finding("grounding", "unsupported_claim_signal",
-                                        "Tokens absent from supplied context: " + sample,
+                                        "Unsupported claim signal detected by context heuristic.",
                                         confidence, "BLOCK"))
-                reasons.append("Possible unsupported claims (heuristic): " + sample + ".")
+                reasons.append("Possible unsupported claims detected by heuristic.")
         else:
             scores["grounding"] = 0.0
 
