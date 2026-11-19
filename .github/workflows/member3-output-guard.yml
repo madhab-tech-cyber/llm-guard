@@ -24,7 +24,9 @@ jobs:
           python-version: "3.12"
       - name: Compile package
         run: python -m compileall -q scanners/output_guard
-      - name: Run unit tests
+      - name: Run core unit tests
         run: python -m unittest scanners.output_guard.test_output_guard -v
+      - name: Run pipeline adapter tests
+        run: python -m unittest scanners.output_guard.test_pipeline_contract -v
       - name: Run synthetic evaluation
         run: python -m scanners.output_guard.evaluate
