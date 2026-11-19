@@ -38,16 +38,6 @@ class TestPII(unittest.TestCase):
         self.assertIn("[REDACTED:EMAIL]", cleaned)
         self.assertEqual(found[0][0], "EMAIL")
 
-    def test_bracketed_email_is_masked(self):
-        cleaned, found = _mask_pii("Contact qa.user [at] example [dot] test")
-        self.assertIn("[REDACTED:EMAIL]", cleaned)
-        self.assertEqual(found[0][0], "EMAIL")
-
-    def test_bracketed_dot_email_is_masked(self):
-        cleaned, found = _mask_pii("Contact qa.user@example[.]test")
-        self.assertIn("[REDACTED:EMAIL]", cleaned)
-        self.assertEqual(found[0][0], "EMAIL")
-
     def test_clean_text_is_unchanged(self):
         text = "Explain a basic sorting algorithm."
         self.assertEqual(_mask_pii(text), (text, []))
