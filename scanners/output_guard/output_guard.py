@@ -44,6 +44,8 @@ class GuardResult:
 
 _PII_PATTERNS = (
     ("EMAIL", re.compile(r"(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)+")),
+    ("EMAIL", re.compile(r"(?i)[A-Z0-9._%+-]+\\s+\\[at\\]\\s+[A-Z0-9-]+\\s+\\[dot\\]\\s+[A-Z0-9-]+")),
+    ("EMAIL", re.compile(r"(?i)[A-Z0-9._%+-]+@[A-Z0-9-]+\\[\\.\\][A-Z0-9-]+")),
     ("EMAIL", re.compile(r"(?i)(?<![\w.+-])[\w.+-]+\s*(?:\[at\]|\(at\)|@|\bat\b)\s*[\w-]+\s*(?:\[dot\]|\(dot\)|\[\.\]|\bdot\b|\.)\s*[\w-]+")),
     ("EMAIL", re.compile(r"(?i)(?<![\w.+-])[\w.+-]+@[\w-]+\[\.\][\w-]+")),
     ("PHONE", re.compile(r"(?<!\w)(?:\+?\d[\d ()-]{8,}\d)(?!\w)")),
