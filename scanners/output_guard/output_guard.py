@@ -128,7 +128,8 @@ def check_output(
     """Return PASS/REDACT/REPLACE after checking a model response.
 
     A checker error fails closed. Grounding is a weak heuristic and cannot prove
-    that an answer is true. Only synthetic test data should be used in this lab.
+    that an answer is true. Unsupported-claim signals trigger replacement because
+    the guard cannot safely edit a factual claim without changing its meaning.
     """
     if not isinstance(response, str) or not response.strip():
         return GuardResult(Verdict.REPLACE, SAFE_FALLBACK,
@@ -196,15 +197,15 @@ def check_output(
                 sample = ", ".join(unsupported[:5])
                 findings.append(Finding("grounding", "unsupported_claim_signal",
                                         "Tokens absent from supplied context: " + sample,
-                                        confidence, "REVIEW"))
+                                        confidence, "BLOCK"))
                 reasons.append("Possible unsupported claims (heuristic): " + sample + ".")
         else:
             scores["grounding"] = 0.0
 
-        if toxic or leaked or scores["format"] >= 0.9:
+        if toxic or leaked or scores["format"] >= 0.9 or scores["grounding"] >= 0.75:
             return GuardResult(Verdict.REPLACE, SAFE_FALLBACK, reasons,
                                scores, findings, timings)
-        if pii or scores["grounding"] >= 0.75:
+        if pii:
             return GuardResult(Verdict.REDACT, cleaned, reasons,
                                scores, findings, timings)
         return GuardResult(Verdict.PASS, cleaned, reasons, scores, findings, timings)
