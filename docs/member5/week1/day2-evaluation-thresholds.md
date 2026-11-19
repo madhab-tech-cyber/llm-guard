@@ -38,9 +38,9 @@ FPR = FP / (FP + TN) × 100
 
 ### 2.4 Decision Latency
 
-Measures the time taken by the guard to make a decision.
+Measures the time taken by the guard to make a decision. Record each decision duration in milliseconds (ms). For reporting, capture p50, p95, and mean decision latency so the distribution is visible.
 
-Unit: milliseconds (ms).
+**Threshold interpretation requiring team confirmation:** The project schedule specifies decision latency < 10 ms but does not identify which summary statistic the threshold applies to. Until the team confirms the statistic, report p50, p95, and mean separately and do not declare the decision-latency threshold passed or failed using an assumed statistic.
 
 ### 2.5 Guard Overhead
 
@@ -107,8 +107,8 @@ These thresholds are the required project targets and must not be changed withou
 - [x] Four required pass thresholds recorded.
 - [x] Thresholds frozen in the specification.
 - [ ] Team agreement received.
-- [ ] Changes committed and pushed to GitHub.
-- [ ] Working tree verified clean.
+- [x] Changes committed and pushed to GitHub (including this checklist correction).
+- [x] Local working tree verified clean in VS Code after the original Day 2 push; pull the latest documentation correction before continuing.
 
 ## 8. Conclusion
 
