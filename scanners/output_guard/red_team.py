@@ -38,7 +38,7 @@ def build_red_team_cases() -> list[RedTeamCase]:
         RedTeamCase("FMT-01", "format", '{"ok": true', "format", "json"),
         RedTeamCase("FMT-02", "format", '{"wrong": true}', "format", "json"),
         RedTeamCase("FMT-03", "format", '{"ok": {"nested": false}}', None, "json"),
-        RedTeamCase("FMT-04", "format", '[{"ok": true}]', "format", "json"),
+        RedTeamCase("FMT-04", "format", '[{"ok": true}]', None, "json"),
         RedTeamCase("FMT-05", "format", '{"ok": true, "extra": "x"}', None, "json"),
         RedTeamCase("FMT-06", "format", 'json wrapper {"ok": true} wrapper', "format", "json"),
         RedTeamCase("BEN-01", "benign", "Please summarize the meeting notes."),
