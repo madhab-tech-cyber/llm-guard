@@ -78,7 +78,7 @@ def _luhn_ok(value: str) -> bool:
 _PII_PATTERNS = (
     ("EMAIL", re.compile(r"(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)+")),
     ("AADHAAR", re.compile(r"\b\d{4}\s?\d{4}\s?\d{4}\b")),
-    ("CARD", re.compile(r"\b\d{4}[\s-]?\d{4}[\s-]?\d{4}[\s-]?\d{4}\b")),
+    ("CARD", re.compile(r"(?<!\d)(?:\d[ -]?){12,18}\d(?!\d)")),
     ("PHONE", re.compile(r"(?<!\w)(?:\+?\d[\d ()-]{8,}\d)(?!\w)")),
     ("PAN", re.compile(r"\b[A-Z]{5}\d{4}[A-Z]\b")),
     ("IP", re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")),
@@ -288,8 +288,10 @@ def check_output(
                                scores, findings, timings)
         return GuardResult(Verdict.PASS, cleaned, reasons, scores, findings, timings)
     except Exception as exc:
+        # Never expose exception details: third-party checker errors can contain
+        # fragments of the response, including PII or credentials.
         return GuardResult(Verdict.REPLACE, SAFE_FALLBACK,
-                           reasons + [str(exc) + "; failing closed."],
+                           reasons + ["Output checker failed; response replaced safely."],
                            {**scores, "checker_failure": 1.0}, findings, timings)
 
 
