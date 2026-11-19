@@ -14,6 +14,16 @@ class TestGroundingFailClosed(unittest.TestCase):
         self.assertEqual(result.cleaned_response, SAFE_FALLBACK)
         self.assertEqual(result.findings[-1].checker, "grounding")
 
+    def test_grounding_findings_do_not_retain_candidate_values(self):
+        result = check_output(
+            "The measured value is 2048.",
+            context="The measured value is 1024.",
+        )
+        self.assertEqual(result.verdict, Verdict.REPLACE)
+        self.assertNotIn("2048", str(result.findings))
+        self.assertNotIn("2048", " ".join(result.reasons))
+        self.assertIn("Unsupported claim signal", result.findings[-1].reason)
+
     def test_supported_claim_passes(self):
         result = check_output(
             "The measured value is 1024.",
