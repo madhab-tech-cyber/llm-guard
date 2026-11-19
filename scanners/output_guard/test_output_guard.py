@@ -51,6 +51,27 @@ class TestPII(unittest.TestCase):
         self.assertNotIn(value, result.cleaned_response)
         self.assertTrue(any(f.category == "STRIPE_LIVE_KEY" for f in result.findings))
 
+    def test_credit_card_with_hyphen_separator_is_masked(self):
+        cleaned, found = _mask_pii("Card 4111-1111-1111-1111")
+        self.assertIn("[REDACTED:CARD]", cleaned)
+        self.assertEqual(found[0][0], "CARD")
+        self.assertNotIn("4111", cleaned)
+
+    def test_findings_never_contain_raw_pii_or_secret(self):
+        value = "FAKE-1234-5678-90ab-cdef12345678"
+        result = check_output(f"Email demo@example.test and api_key={value}")
+        self.assertNotIn("demo@example.test", str(result.findings))
+        self.assertNotIn(value, str(result.findings))
+        self.assertNotIn(value, " ".join(result.reasons))
+
+    def test_checker_exception_details_are_not_returned(self):
+        with patch("scanners.output_guard.output_guard._mask_pii",
+                   side_effect=RuntimeError("secret-fragment-FAKE")):
+            result = check_output("ordinary response")
+        self.assertEqual(result.verdict, Verdict.REPLACE)
+        self.assertEqual(result.cleaned_response, SAFE_FALLBACK)
+        self.assertNotIn("secret-fragment-FAKE", " ".join(result.reasons))
+
     def test_valid_ipv4_and_invalid_ipv4(self):
         cleaned, found = _mask_pii("Host 192.168.1.10 and 999.1.1.1")
         self.assertIn("[REDACTED:IP]", cleaned)
