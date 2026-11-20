@@ -4,6 +4,7 @@ from __future__ import annotations
 import json
 import re
 import time
+import unicodedata
 from dataclasses import asdict, dataclass, field
 from enum import Enum
 from typing import Any
@@ -43,6 +44,9 @@ class GuardResult:
 
 _PII_PATTERNS = (
     ("EMAIL", re.compile(r"(?<![\w.+-])[\w.+-]+@[\w-]+(?:\.[\w-]+)+")),
+    ("EMAIL", re.compile(r"(?i)[A-Z0-9._%+-]+\s+\[at\]\s+[A-Z0-9-]+\s+\[dot\]\s+[A-Z0-9-]+")),
+    ("EMAIL", re.compile(r"(?i)[A-Z0-9._%+-]+@[A-Z0-9-]+\[\.\][A-Z0-9-]+")),
+    ("EMAIL", re.compile(r"(?i)(?<![\w.+-])[\w.+-]+\s*(?:\[at\]|\(at\)|@|\bat\b)\s*[\w-]+\s*(?:\[dot\]|\(dot\)|\[\.\]|\bdot\b|\.)\s*[\w-]+")),
     ("PHONE", re.compile(r"(?<!\w)(?:\+?\d[\d ()-]{8,}\d)(?!\w)")),
     ("PAN", re.compile(r"\b[A-Z]{5}\d{4}[A-Z]\b")),
     ("IP", re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")),
@@ -62,6 +66,16 @@ SAFE_FALLBACK = (
     "I can’t provide that response safely. I can help with a safer, "
     "high-level alternative or a benign explanation."
 )
+
+
+def _normalize_for_detection(text: str) -> str:
+    """Normalize common Unicode homoglyphs and punctuation evasions for matching."""
+    normalized = unicodedata.normalize("NFKC", text).translate(str.maketrans({
+        "і": "i", "І": "I", "ӏ": "l", "Ӏ": "I", "ο": "o", "Ο": "O",
+        "а": "a", "А": "A", "е": "e", "Е": "E", "с": "c", "С": "C",
+        "р": "p", "Р": "P", "х": "x", "Х": "X", "у": "y", "У": "Y",
+    }))
+    return re.sub(r"(?<=[A-Za-z])[\W_]+(?=[A-Za-z])", " ", normalized)
 
 
 def _mask_pii(text: str) -> tuple[str, list[tuple[str, str]]]:
@@ -160,9 +174,10 @@ def check_output(
         if pii and pii_policy == "drop":
             return GuardResult(Verdict.BLOCK, "", reasons, scores, findings, timings)
 
+        normalized_for_detection = _normalize_for_detection(cleaned)
         toxic = run("toxicity", lambda: [
             category for category, pattern in _TOXIC_PATTERNS.items()
-            if re.search(pattern, cleaned, re.I)
+            if re.search(pattern, normalized_for_detection, re.I)
         ])
         scores["toxicity"] = 0.9 if toxic else 0.0
         for category in toxic:
