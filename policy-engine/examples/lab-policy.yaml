@@ -1,0 +1,30 @@
+policy_version: "0.1"
+policy_id: lab_example
+rules:
+  - name: block_injection
+    condition:
+      stage: input
+      signal: injection
+      operator: gte
+      value: 0.90
+    action: BLOCK
+    severity: high
+    reason: "Injection score crossed the lab threshold"
+  - name: flag_injection
+    condition:
+      stage: input
+      signal: injection
+      operator: gte
+      value: 0.50
+    action: FLAG
+    severity: medium
+    reason: "Injection signal requires review"
+  - name: redact_pii
+    condition:
+      stage: output
+      signal: pii
+      operator: gte
+      value: 0.50
+    action: REDACT
+    severity: medium
+    reason: "Sensitive field requires a verified mask"
