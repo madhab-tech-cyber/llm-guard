@@ -152,8 +152,8 @@ These metrics should be considered together. For example, a guard that catches m
 - [x] Worked example and calculations completed.
 - [x] Practice dataset explicitly labelled synthetic.
 - [x] No actual evaluation or benchmark results invented.
-- [ ] File committed and pushed to the Member 5 branch.
-- [ ] File opened on GitHub and verified.
+- [x] File committed and pushed to the Member 5 branch.
+- [x] File opened on GitHub and verified.
 
 ## 7. Conclusion
 
@@ -161,4 +161,4 @@ Day 1 establishes the basic measurements needed to evaluate an LLM guardrail. Pr
 
 The example in these notes is synthetic and is intended only to practise the calculations. Actual LLM Guard performance must be measured using a documented evaluation dataset and test run.
 
-**Day 1 status:** Study notes prepared. Repository commit, push, and GitHub verification are still pending.
+**Day 1 status:** Study notes prepared, committed, pushed, and verified on the Member 5 branch.
