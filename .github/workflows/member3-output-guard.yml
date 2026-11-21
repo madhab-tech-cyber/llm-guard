@@ -7,7 +7,7 @@ on:
       - "scanners/output_guard/**"
       - ".github/workflows/member3-output-guard.yml"
   push:
-    branches: [member3-output-guard]
+    branches: [member3-output-guard, member3-redteam-hardening]
     paths:
       - "scanners/output_guard/**"
       - ".github/workflows/member3-output-guard.yml"
