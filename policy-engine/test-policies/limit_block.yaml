@@ -1,0 +1,12 @@
+policy_version: "0.1"
+policy_id: limit_block
+rules:
+  - name: limit_block
+    condition:
+      stage: input
+      signal: limits
+      operator: gte
+      value: 0.80
+    action: BLOCK
+    severity: high
+    reason: "Synthetic limit_block threshold"

@@ -1,0 +1,12 @@
+policy_version: "0.1"
+policy_id: output_pii_redact
+rules:
+  - name: output_pii_redact
+    condition:
+      stage: output
+      signal: pii
+      operator: gte
+      value: 0.80
+    action: REDACT
+    severity: high
+    reason: "Synthetic output_pii_redact threshold"

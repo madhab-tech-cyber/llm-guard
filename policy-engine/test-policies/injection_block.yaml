@@ -1,0 +1,12 @@
+policy_version: "0.1"
+policy_id: injection_block
+rules:
+  - name: injection_block
+    condition:
+      stage: input
+      signal: injection
+      operator: gte
+      value: 0.80
+    action: BLOCK
+    severity: high
+    reason: "Synthetic injection_block threshold"
