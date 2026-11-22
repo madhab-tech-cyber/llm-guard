@@ -1,0 +1,12 @@
+policy_version: "0.1"
+policy_id: injection_flag
+rules:
+  - name: injection_flag
+    condition:
+      stage: input
+      signal: injection
+      operator: gte
+      value: 0.80
+    action: FLAG
+    severity: medium
+    reason: "Synthetic injection_flag threshold"

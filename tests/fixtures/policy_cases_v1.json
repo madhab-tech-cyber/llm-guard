@@ -1,0 +1,506 @@
+{
+  "corpus_version": "1.0",
+  "label_source": "self-labelled engineering cases",
+  "cases": [
+    {
+      "policy": "injection_block",
+      "stage": "input",
+      "signal": "injection",
+      "case": "below_threshold",
+      "score": 0.1,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "ALLOW"
+    },
+    {
+      "policy": "injection_block",
+      "stage": "input",
+      "signal": "injection",
+      "case": "at_threshold",
+      "score": 0.8,
+      "verdict": "clean",
+      "masked_available": true,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "injection_block",
+      "stage": "input",
+      "signal": "injection",
+      "case": "suspicious_below",
+      "score": 0.1,
+      "verdict": "suspicious",
+      "masked_available": false,
+      "expected": "FLAG"
+    },
+    {
+      "policy": "injection_block",
+      "stage": "input",
+      "signal": "injection",
+      "case": "guard_blocked",
+      "score": 0.1,
+      "verdict": "blocked",
+      "masked_available": false,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "injection_block",
+      "stage": "input",
+      "signal": "injection",
+      "case": "missing_score",
+      "score": null,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "injection_flag",
+      "stage": "input",
+      "signal": "injection",
+      "case": "below_threshold",
+      "score": 0.1,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "ALLOW"
+    },
+    {
+      "policy": "injection_flag",
+      "stage": "input",
+      "signal": "injection",
+      "case": "at_threshold",
+      "score": 0.8,
+      "verdict": "clean",
+      "masked_available": true,
+      "expected": "FLAG"
+    },
+    {
+      "policy": "injection_flag",
+      "stage": "input",
+      "signal": "injection",
+      "case": "suspicious_below",
+      "score": 0.1,
+      "verdict": "suspicious",
+      "masked_available": false,
+      "expected": "FLAG"
+    },
+    {
+      "policy": "injection_flag",
+      "stage": "input",
+      "signal": "injection",
+      "case": "guard_blocked",
+      "score": 0.1,
+      "verdict": "blocked",
+      "masked_available": false,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "injection_flag",
+      "stage": "input",
+      "signal": "injection",
+      "case": "missing_score",
+      "score": null,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "encoding_flag",
+      "stage": "input",
+      "signal": "jailbreak_encoding",
+      "case": "below_threshold",
+      "score": 0.1,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "ALLOW"
+    },
+    {
+      "policy": "encoding_flag",
+      "stage": "input",
+      "signal": "jailbreak_encoding",
+      "case": "at_threshold",
+      "score": 0.8,
+      "verdict": "clean",
+      "masked_available": true,
+      "expected": "FLAG"
+    },
+    {
+      "policy": "encoding_flag",
+      "stage": "input",
+      "signal": "jailbreak_encoding",
+      "case": "suspicious_below",
+      "score": 0.1,
+      "verdict": "suspicious",
+      "masked_available": false,
+      "expected": "FLAG"
+    },
+    {
+      "policy": "encoding_flag",
+      "stage": "input",
+      "signal": "jailbreak_encoding",
+      "case": "guard_blocked",
+      "score": 0.1,
+      "verdict": "blocked",
+      "masked_available": false,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "encoding_flag",
+      "stage": "input",
+      "signal": "jailbreak_encoding",
+      "case": "missing_score",
+      "score": null,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "pii_redact",
+      "stage": "input",
+      "signal": "pii",
+      "case": "below_threshold",
+      "score": 0.1,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "ALLOW"
+    },
+    {
+      "policy": "pii_redact",
+      "stage": "input",
+      "signal": "pii",
+      "case": "at_threshold",
+      "score": 0.8,
+      "verdict": "clean",
+      "masked_available": true,
+      "expected": "REDACT"
+    },
+    {
+      "policy": "pii_redact",
+      "stage": "input",
+      "signal": "pii",
+      "case": "suspicious_below",
+      "score": 0.1,
+      "verdict": "suspicious",
+      "masked_available": false,
+      "expected": "FLAG"
+    },
+    {
+      "policy": "pii_redact",
+      "stage": "input",
+      "signal": "pii",
+      "case": "guard_blocked",
+      "score": 0.1,
+      "verdict": "blocked",
+      "masked_available": false,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "pii_redact",
+      "stage": "input",
+      "signal": "pii",
+      "case": "missing_score",
+      "score": null,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "secret_block",
+      "stage": "input",
+      "signal": "secrets",
+      "case": "below_threshold",
+      "score": 0.1,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "ALLOW"
+    },
+    {
+      "policy": "secret_block",
+      "stage": "input",
+      "signal": "secrets",
+      "case": "at_threshold",
+      "score": 0.8,
+      "verdict": "clean",
+      "masked_available": true,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "secret_block",
+      "stage": "input",
+      "signal": "secrets",
+      "case": "suspicious_below",
+      "score": 0.1,
+      "verdict": "suspicious",
+      "masked_available": false,
+      "expected": "FLAG"
+    },
+    {
+      "policy": "secret_block",
+      "stage": "input",
+      "signal": "secrets",
+      "case": "guard_blocked",
+      "score": 0.1,
+      "verdict": "blocked",
+      "masked_available": false,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "secret_block",
+      "stage": "input",
+      "signal": "secrets",
+      "case": "missing_score",
+      "score": null,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "limit_block",
+      "stage": "input",
+      "signal": "limits",
+      "case": "below_threshold",
+      "score": 0.1,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "ALLOW"
+    },
+    {
+      "policy": "limit_block",
+      "stage": "input",
+      "signal": "limits",
+      "case": "at_threshold",
+      "score": 0.8,
+      "verdict": "clean",
+      "masked_available": true,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "limit_block",
+      "stage": "input",
+      "signal": "limits",
+      "case": "suspicious_below",
+      "score": 0.1,
+      "verdict": "suspicious",
+      "masked_available": false,
+      "expected": "FLAG"
+    },
+    {
+      "policy": "limit_block",
+      "stage": "input",
+      "signal": "limits",
+      "case": "guard_blocked",
+      "score": 0.1,
+      "verdict": "blocked",
+      "masked_available": false,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "limit_block",
+      "stage": "input",
+      "signal": "limits",
+      "case": "missing_score",
+      "score": null,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "sanitizer_flag",
+      "stage": "input",
+      "signal": "sanitizer",
+      "case": "below_threshold",
+      "score": 0.1,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "ALLOW"
+    },
+    {
+      "policy": "sanitizer_flag",
+      "stage": "input",
+      "signal": "sanitizer",
+      "case": "at_threshold",
+      "score": 0.8,
+      "verdict": "clean",
+      "masked_available": true,
+      "expected": "FLAG"
+    },
+    {
+      "policy": "sanitizer_flag",
+      "stage": "input",
+      "signal": "sanitizer",
+      "case": "suspicious_below",
+      "score": 0.1,
+      "verdict": "suspicious",
+      "masked_available": false,
+      "expected": "FLAG"
+    },
+    {
+      "policy": "sanitizer_flag",
+      "stage": "input",
+      "signal": "sanitizer",
+      "case": "guard_blocked",
+      "score": 0.1,
+      "verdict": "blocked",
+      "masked_available": false,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "sanitizer_flag",
+      "stage": "input",
+      "signal": "sanitizer",
+      "case": "missing_score",
+      "score": null,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "output_pii_redact",
+      "stage": "output",
+      "signal": "pii",
+      "case": "below_threshold",
+      "score": 0.1,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "ALLOW"
+    },
+    {
+      "policy": "output_pii_redact",
+      "stage": "output",
+      "signal": "pii",
+      "case": "at_threshold",
+      "score": 0.8,
+      "verdict": "clean",
+      "masked_available": true,
+      "expected": "REDACT"
+    },
+    {
+      "policy": "output_pii_redact",
+      "stage": "output",
+      "signal": "pii",
+      "case": "suspicious_below",
+      "score": 0.1,
+      "verdict": "suspicious",
+      "masked_available": false,
+      "expected": "FLAG"
+    },
+    {
+      "policy": "output_pii_redact",
+      "stage": "output",
+      "signal": "pii",
+      "case": "guard_blocked",
+      "score": 0.1,
+      "verdict": "blocked",
+      "masked_available": false,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "output_pii_redact",
+      "stage": "output",
+      "signal": "pii",
+      "case": "missing_score",
+      "score": null,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "output_secret_block",
+      "stage": "output",
+      "signal": "secrets",
+      "case": "below_threshold",
+      "score": 0.1,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "ALLOW"
+    },
+    {
+      "policy": "output_secret_block",
+      "stage": "output",
+      "signal": "secrets",
+      "case": "at_threshold",
+      "score": 0.8,
+      "verdict": "clean",
+      "masked_available": true,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "output_secret_block",
+      "stage": "output",
+      "signal": "secrets",
+      "case": "suspicious_below",
+      "score": 0.1,
+      "verdict": "suspicious",
+      "masked_available": false,
+      "expected": "FLAG"
+    },
+    {
+      "policy": "output_secret_block",
+      "stage": "output",
+      "signal": "secrets",
+      "case": "guard_blocked",
+      "score": 0.1,
+      "verdict": "blocked",
+      "masked_available": false,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "output_secret_block",
+      "stage": "output",
+      "signal": "secrets",
+      "case": "missing_score",
+      "score": null,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "output_encoding_flag",
+      "stage": "output",
+      "signal": "jailbreak_encoding",
+      "case": "below_threshold",
+      "score": 0.1,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "ALLOW"
+    },
+    {
+      "policy": "output_encoding_flag",
+      "stage": "output",
+      "signal": "jailbreak_encoding",
+      "case": "at_threshold",
+      "score": 0.8,
+      "verdict": "clean",
+      "masked_available": true,
+      "expected": "FLAG"
+    },
+    {
+      "policy": "output_encoding_flag",
+      "stage": "output",
+      "signal": "jailbreak_encoding",
+      "case": "suspicious_below",
+      "score": 0.1,
+      "verdict": "suspicious",
+      "masked_available": false,
+      "expected": "FLAG"
+    },
+    {
+      "policy": "output_encoding_flag",
+      "stage": "output",
+      "signal": "jailbreak_encoding",
+      "case": "guard_blocked",
+      "score": 0.1,
+      "verdict": "blocked",
+      "masked_available": false,
+      "expected": "BLOCK"
+    },
+    {
+      "policy": "output_encoding_flag",
+      "stage": "output",
+      "signal": "jailbreak_encoding",
+      "case": "missing_score",
+      "score": null,
+      "verdict": "clean",
+      "masked_available": false,
+      "expected": "BLOCK"
+    }
+  ]
+}

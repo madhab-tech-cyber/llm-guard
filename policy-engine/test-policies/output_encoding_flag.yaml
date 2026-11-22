@@ -1,0 +1,12 @@
+policy_version: "0.1"
+policy_id: output_encoding_flag
+rules:
+  - name: output_encoding_flag
+    condition:
+      stage: output
+      signal: jailbreak_encoding
+      operator: gte
+      value: 0.80
+    action: FLAG
+    severity: medium
+    reason: "Synthetic output_encoding_flag threshold"

@@ -1,0 +1,12 @@
+policy_version: "0.1"
+policy_id: encoding_flag
+rules:
+  - name: encoding_flag
+    condition:
+      stage: input
+      signal: jailbreak_encoding
+      operator: gte
+      value: 0.80
+    action: FLAG
+    severity: medium
+    reason: "Synthetic encoding_flag threshold"
