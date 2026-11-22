@@ -90,20 +90,21 @@ check("skeleton empty blocked", r["verdict"], "blocked")
 r = check_prompt("   ")
 check("skeleton whitespace-only blocked", r["verdict"], "blocked")
 
-# Benign traps from Days 6-9 must stay clean through the whole guard —
-# except the two KNOWN Day 6 false positives, already recorded for
-# Day 14 (the Day 6/7 test run shows the same 2 failures: 19/21 pass).
-# The skeleton inherits them unchanged; Day 10 does not fix Detector 1.
+# Benign traps from Days 6-9 must stay clean through the whole guard.
+# Day 14 (2026-11-22) fixed the two KNOWN Day 6 false positives below,
+# so they now expect clean — the old expectations (suspicious / blocked)
+# recorded the buggy behaviour for Day 14 to fix, the same way the
+# Day 11 file parked them.
 for name, text, want in [
-    ("bare api_key variable (known Day 6 FP #2: R9 fires on the word "
-     "api_key in code — recorded for Day 14)",
-     "def call(api_key): return headers(api_key)", "suspicious"),
+    ("bare api_key variable (FIXED Day 14: R9 no longer fires on the "
+     "word api_key in code)",
+     "def call(api_key): return headers(api_key)", "clean"),
     ("password question, no value",
      "What is a strong password policy? Explain the idea.", "clean"),
-    ("explain the phrase (known Day 6 FP #1: quoting the attack phrase "
-     "scores 0.95 — recorded for Day 14)",
+    ("explain the phrase (FIXED Day 14: quoting the attack phrase "
+     "no longer scores 0.95)",
      'What does "ignore previous instructions" mean? Just explain the phrase.',
-     "blocked"),
+     "clean"),
     ("test key (suspicious by design, Day 9)",
      "sk_test_FAKE1234567890abcdefghijklmnop", "suspicious"),
 ]:
