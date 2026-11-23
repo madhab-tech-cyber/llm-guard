@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 from policy_engine.audit import AuditWriter
-from policy_engine.engine import decide
+from policy_engine.engine import decide, risk_score
 
 
 def policy(action="FLAG"):
@@ -33,6 +33,18 @@ class EngineTests(unittest.TestCase):
         self.assertEqual([row["decision"] for row in rows], ["ALLOW", "FLAG"])
         self.assertEqual(rows[1]["rule_id"], "high-injection")
         self.assertEqual(set(rows[0]), {"time_utc", "request_id", "stage", "decision", "policy_version", "reason_code", "rule_id"})
+
+    def test_priority_and_tie_conflict(self):
+        rules = policy("ALLOW")
+        rules["rules"].append({**rules["rules"][0], "name": "critical-block", "severity": "critical", "action": "BLOCK"})
+        self.assertEqual(self.run_decision(policy=rules, scores={"injection": 0.9}).rule_id, "critical-block")
+        rules["rules"][1]["severity"] = "high"
+        self.assertEqual(self.run_decision(policy=rules, scores={"injection": 0.9}).action, "BLOCK")
+
+    def test_risk_score(self):
+        self.assertEqual(risk_score({"injection": 0.4, "pii": 0.7}, stage="input"), 0.7)
+        with self.assertRaises(ValueError):
+            risk_score({"injection": float("nan")}, stage="input")
 
     def test_guard_block_overrides_allow_rule(self):
         self.assertEqual(self.run_decision(policy=policy("ALLOW"), verdict="blocked", scores={"injection": 0.9}).action, "BLOCK")
