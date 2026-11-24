@@ -26,10 +26,10 @@ The Day 3 dataset format remains the source of truth:
 |---|---|---|
 | `prompt` | string | Synthetic input to evaluate |
 | `expected_verdict` | string | Expected normalized outcome, initially `allow` or `block` |
-| `category` | string | Evaluation category, such as benign, injection, jailbreak, PII, or toxicity |
+| `category` | string | Initial categories are `benign` and `injection`; introduce additional categories only through an agreed schema update |
 
 The loader will:
-1. Read the agreed dataset file (initially JSONL or the exact format selected in the Day 3 dataset documentation).
+1. Read the Day 3 dataset file as a JSON array (`datasets/sample_eval_dataset.json`). Keep the input dataset format aligned with that specification; JSONL is proposed for saved case-result output, not as a replacement input format.
 2. Validate that every record contains all three required fields and that values are non-empty.
 3. Validate the expected-verdict vocabulary for the selected guard adapter.
 4. Reject malformed records with a useful line/record number; do not silently skip or relabel them.
@@ -170,6 +170,6 @@ Implementation is planned for the project's Python 3.12 stack. The harness shoul
 - [x] Metrics and edge cases defined.
 - [x] Architecture diagram saved separately.
 - [x] Implementation plan documented.
-- [ ] Files committed and pushed to the Member 5 branch.
+- [x] Files committed and pushed to the Member 5 branch.
 
 **Day 4 status:** Design documentation only. No live guard evaluation has been run as part of this task, and no evaluation score is claimed.
