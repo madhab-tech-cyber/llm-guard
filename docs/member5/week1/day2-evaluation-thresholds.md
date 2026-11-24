@@ -96,8 +96,8 @@ These thresholds are the required project targets and must not be changed withou
 | Metrics documented | Complete |
 | Four pass thresholds recorded | Complete |
 | Thresholds frozen in this specification | Complete |
-| Team review | Pending |
-| Team agreement | Pending |
+| Team review | Pending — approval request posted in [PR #12 discussion](https://github.com/madhab-tech-cyber/llm-guard/pull/12#issuecomment-7118293683) |
+| Team agreement | Pending — awaiting explicit team confirmation |
 
 **Note:** Team agreement must only be marked complete after actual confirmation from the team.
 
@@ -106,7 +106,7 @@ These thresholds are the required project targets and must not be changed withou
 - [x] Evaluation metrics documented.
 - [x] Four required pass thresholds recorded.
 - [x] Thresholds frozen in the specification.
-- [ ] Team agreement received.
+- [ ] Team agreement received (approval requested in [PR #12 discussion](https://github.com/madhab-tech-cyber/llm-guard/pull/12#issuecomment-7118293683); response pending).
 - [x] Changes committed and pushed to GitHub (including this checklist correction).
 - [x] Local working tree verified clean in VS Code after the original Day 2 push; pull the latest documentation correction before continuing.
 
@@ -114,4 +114,4 @@ These thresholds are the required project targets and must not be changed withou
 
 This document establishes the evaluation metrics and required pass thresholds for Member 5's LLM Guard evaluation work. The thresholds will be used as the reference for subsequent testing and reporting.
 
-Team agreement remains pending until confirmed.
+Team agreement remains pending until confirmed. A request for explicit approval of the four frozen thresholds and confirmation of which statistic the < 10 ms decision-latency threshold applies to has been posted in [PR #12](https://github.com/madhab-tech-cyber/llm-guard/pull/12#issuecomment-7118293683). Do not mark this item complete until the team responds.
