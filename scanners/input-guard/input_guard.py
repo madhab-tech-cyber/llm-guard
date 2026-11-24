@@ -45,6 +45,17 @@ Known v1 limits (say them honestly):
   overlap cannot double-block a clean prompt.
 - Token count is an estimate (chars / 4) from Detector 5, not a real
   tokenizer.
+
+Day 16 (shadow ML): an ML injection classifier (detector_ml.py,
+TF-IDF + logistic regression) now runs BESIDE the heuristics. Its score
+is reported under a separate top-level key, "shadow_scores", with its
+own timing in "shadow_timings_ms". It is NOT in "scores", NOT in
+"detector_timings_ms", and it NEVER changes the verdict. If the model
+crashes, the shadow score is None and a "shadow_reasons" line says why;
+the verdict is still decided by the heuristics alone. The model trains
+once on first use (about 1-3 s on the 80-prompt seed set), then is
+cached. Early returns (empty prompt, over the limits) skip the model
+and report the shadow score as None. Day 18 decides the default.
 Lab-only: synthetic prompts only, never real user data.
 """
 import time
@@ -54,6 +65,13 @@ from detector_injection import detect_injection
 from detector_limits import check_limits
 from detector_pii import detect_pii
 from detector_secrets import detect_secrets
+
+try:  # Day 16 shadow classifier. An import failure must not break the guard.
+    from detector_ml import detect_injection_ml
+    _ML_IMPORT_ERROR = None
+except Exception as _exc:  # pragma: no cover
+    detect_injection_ml = None
+    _ML_IMPORT_ERROR = _exc
 
 # Detector 6 (sanitizer) is Day 21 work. Key present, score 0.00, no-op.
 _SANITIZER_SCORE = 0.0
@@ -76,6 +94,29 @@ def _run(name, fn, prompt_text, scores, reasons, timings):
                 "masked_prompt": prompt_text}
 
 
+def _shadow(prompt_text, run=True):
+    """Day 16: run the ML classifier as a shadow. Never touches the verdict."""
+    out = {"shadow_scores": {"injection_ml": None},
+           "shadow_timings_ms": {"injection_ml": 0.0},
+           "shadow_reasons": []}
+    if not run:
+        return out
+    started = time.perf_counter()
+    try:
+        if detect_injection_ml is None:
+            raise RuntimeError(f"ML module not importable: {_ML_IMPORT_ERROR}")
+        result = detect_injection_ml(prompt_text)
+        out["shadow_scores"]["injection_ml"] = float(result.get("score", 0.0))
+        out["shadow_reasons"].extend(result.get("reasons", []))
+    except Exception as exc:  # shadow only: record, do not fail closed
+        out["shadow_scores"]["injection_ml"] = None
+        out["shadow_reasons"].append(
+            f"ML injection classifier crashed (shadow only, verdict unchanged): {exc}.")
+    out["shadow_timings_ms"]["injection_ml"] = round(
+        (time.perf_counter() - started) * 1000, 3)
+    return out
+
+
 def check_prompt(prompt_text: str, source: str = "user-typed",
                  turn_number: int = 1, history_summary: str = "",
                  language: str = "en") -> dict:
@@ -85,6 +126,22 @@ def check_prompt(prompt_text: str, source: str = "user-typed",
     # used for detection. Multi-turn + indirect cases are Days 21-23.
     _context = {"source": source, "turn_number": turn_number,
                 "history_summary": history_summary, "language": language}
+
+    if not isinstance(prompt_text, str):
+        # Fail closed, never crash: a non-string input (e.g. an int from
+        # a harness) used to raise AttributeError on .strip() below.
+        # Fixed 24 Nov 2026 with Day 16, before the Day 16 push.
+        return {"verdict": "blocked",
+                "reasons": ["Limits detector 1.00: non-string prompt received, failing closed."],
+                "scores": {"injection": 0.0, "jailbreak_encoding": 0.0,
+                           "pii": 0.0, "secrets": 0.0, "limits": 1.0,
+                           "sanitizer": _SANITIZER_SCORE},
+                "masked_prompt": "",
+                "detector_timings_ms": {"injection": 0.0,
+                                        "jailbreak_encoding": 0.0,
+                                        "pii": 0.0, "secrets": 0.0,
+                                        "limits": 0.0, "sanitizer": 0.0},
+                "context": _context, **_shadow(prompt_text, run=False)}
 
     if not prompt_text or not prompt_text.strip():
         # Day 5 says the sender never sends an empty prompt. If one
@@ -99,7 +156,7 @@ def check_prompt(prompt_text: str, source: str = "user-typed",
                                         "jailbreak_encoding": 0.0,
                                         "pii": 0.0, "secrets": 0.0,
                                         "limits": 0.0, "sanitizer": 0.0},
-                "context": _context}
+                "context": _context, **_shadow(prompt_text, run=False)}
 
     # 1. Limits gate first — an oversize prompt is stopped, not judged.
     limits = _run("limits", check_limits, prompt_text,
@@ -109,7 +166,7 @@ def check_prompt(prompt_text: str, source: str = "user-typed",
     if limits["verdict"] == "blocked":
         return {"verdict": "blocked", "reasons": reasons, "scores": scores,
                 "masked_prompt": "", "detector_timings_ms": timings,
-                "context": _context}
+                "context": _context, **_shadow(prompt_text, run=False)}
 
     # 2. The four judging detectors, worst score wins.
     encoding = _run("jailbreak_encoding", detect_encoded, prompt_text,
@@ -134,7 +191,7 @@ def check_prompt(prompt_text: str, source: str = "user-typed",
         verdict, masked_out = "clean", prompt_text
     return {"verdict": verdict, "reasons": reasons, "scores": scores,
             "masked_prompt": masked_out, "detector_timings_ms": timings,
-            "context": _context}
+            "context": _context, **_shadow(prompt_text)}
 
 
 if __name__ == "__main__":
