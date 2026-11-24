@@ -21,3 +21,5 @@ result = decide(policy=policy, request_id="synthetic_1", stage="input",
 The example is synthetic and uses draft score names. An actual pipeline adapter, verified mask provenance and FLAG delivery semantics require Member 1–3 agreement. The audit file contains only bounded identifiers and static reason codes. Run `python -m unittest discover -s tests -p 'test_policy_*.py'` after installing `policy-engine/requirements.txt`.
 
 Days 16–17 select the highest severity among matching rules (`critical > high > medium > low`); ties choose the stricter action (`BLOCK > REDACT > FLAG > ALLOW`), then preserve file order. `risk_score` returns the maximum validated detector score for the stage. These are standalone lab semantics pending team agreement.
+
+Days 18–19: audit records already include the validated policy version and selected rule ID for tracing. `RateLimiter` adds a bounded, process-local fixed-window quota keyed by an opaque caller ID; invalid IDs, clock regression and key-capacity exhaustion deny. It is not distributed and is not yet connected to the proxy.

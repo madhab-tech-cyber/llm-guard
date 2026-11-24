@@ -3,5 +3,6 @@
 from .audit import AuditError, AuditWriter
 from .engine import Decision, decide
 from .loader import PolicyError, load_policy
+from .rate_limit import RateLimiter
 
-__all__ = ["AuditError", "AuditWriter", "Decision", "PolicyError", "decide", "load_policy"]
+__all__ = ["AuditError", "AuditWriter", "Decision", "PolicyError", "decide", "load_policy", "RateLimiter"]
