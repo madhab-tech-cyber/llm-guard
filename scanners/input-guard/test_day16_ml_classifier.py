@@ -135,7 +135,8 @@ fp = sum(1 for it in test_items if it["label"] == "benign"
 heur_miss_caught = sum(1 for it in test_items if it["label"] == "attack"
                        and results[it["id"]]["verdict"] == "clean"
                        and results[it["id"]]["shadow_scores"]["injection_ml"] >= 0.5)
-print(f"\nSMOKE PREVIEW (80-prompt seed model, threshold 0.5; NOT a result): "
+print(f"\nSMOKE PREVIEW (current shadow model - Day 17 model if day17_model.json "
+      f"exists, else the 80-prompt seed - at 0.5; NOT a result, see day17_metrics.json): "
       f"ML flags {tp}/50 attacks, {fp}/50 benign; "
       f"attacks the heuristics miss but ML flags: {heur_miss_caught}")
 

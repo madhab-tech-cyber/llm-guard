@@ -22,11 +22,14 @@ Where it sits
 Training data
 - Day 16: day16_train_set.json (80 hand-written synthetic prompts,
   40 benign + 40 attack), kept separate from the Day 12 TEST set.
-- Day 17: add public datasets (sources noted) and evaluate properly.
+- Day 17: day17_model.json, trained on the public dataset
+  deepset/prompt-injections (Apache-2.0, see day17_public_deepset.json)
+  plus the 80 seed prompts, with settings picked on a validation split.
+  Built by day17_train_eval.py; numbers in day17_metrics.json.
 
 Honest limits
-- 80 training prompts is tiny. Treat any score from this model as a
-  smoke test, not a result. Real numbers come on Day 17.
+- Day 16's 80-prompt seed model was a smoke test only. Day 17 numbers
+  (validation-picked, held-out test) are in day17-train-evaluate.md.
 - It only scores injection / jailbreak wording. PII, secrets, encoding
   and limits stay with their own detectors.
 """
@@ -65,8 +68,11 @@ def _features(text: str) -> Counter:
 class TfidfLogReg:
     """Tiny TF-IDF + logistic regression. Deterministic."""
 
-    def __init__(self, l2: float = 0.001, lr: float = 2.0, epochs: int = 300):
-        self.l2, self.lr, self.epochs = l2, lr, epochs
+    def __init__(self, l2: float = 0.001, lr: float = 2.0, epochs: int = 300,
+                 min_df: int = 1):
+        # min_df (Day 17): drop features seen in fewer than min_df training
+        # prompts. Default 1 = exactly the Day 16 behaviour.
+        self.l2, self.lr, self.epochs, self.min_df = l2, lr, epochs, min_df
         self.idf = {}
         self.weights = {}
         self.bias = 0.0
@@ -84,7 +90,8 @@ class TfidfLogReg:
         for t in texts:
             df.update(set(_features(t)))
         # Smoothed idf, like sklearn's default.
-        self.idf = {f: math.log((1 + n) / (1 + d)) + 1.0 for f, d in df.items()}
+        self.idf = {f: math.log((1 + n) / (1 + d)) + 1.0 for f, d in df.items()
+                    if d >= self.min_df}
         xs = [self._vector(t) for t in texts]
         self.weights = {f: 0.0 for f in self.idf}
         self.bias = 0.0
@@ -131,14 +138,32 @@ def load_training_set(path: str = _DEFAULT_TRAIN):
 
 
 _MODEL = None
+_DAY17_MODEL = os.path.join(_HERE, "day17_model.json")
+# Day 17: cutoff picked on the validation split (stored in the model file).
+MODEL_CUTOFF = SUSPICIOUS_AT
+
+
+def load_saved_model(path: str = _DAY17_MODEL):
+    """Load the Day 17 trained model (no training at run time)."""
+    with open(path, encoding="utf-8") as fh:
+        data = json.load(fh)
+    m = TfidfLogReg(l2=data["l2"], lr=data["lr"], epochs=data["epochs"],
+                    min_df=data["min_df"])
+    m.idf, m.weights, m.bias = data["idf"], data["weights"], data["bias"]
+    return m, data["cutoff"]
 
 
 def get_model() -> TfidfLogReg:
-    """Train once on first use, then reuse (~1 s on 80 prompts)."""
-    global _MODEL
+    """Day 17: load the saved model trained on public + seed data.
+    If the file is missing, fall back to the Day 16 seed model (trains on
+    first use, ~3 s on 80 prompts)."""
+    global _MODEL, MODEL_CUTOFF
     if _MODEL is None:
-        texts, labels = load_training_set()
-        _MODEL = TfidfLogReg().fit(texts, labels)
+        if os.path.exists(_DAY17_MODEL):
+            _MODEL, MODEL_CUTOFF = load_saved_model()
+        else:
+            texts, labels = load_training_set()
+            _MODEL = TfidfLogReg().fit(texts, labels)
     return _MODEL
 
 
@@ -148,7 +173,7 @@ def detect_injection_ml(prompt_text: str) -> dict:
     score = round(model.predict_proba(prompt_text), 3)
     if score >= BLOCK_AT:
         verdict = "blocked"
-    elif score >= SUSPICIOUS_AT:
+    elif score >= MODEL_CUTOFF:
         verdict = "suspicious"
     else:
         verdict = "clean"

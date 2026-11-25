@@ -1,0 +1,190 @@
+{
+ "chosen": {
+  "cutoff": 0.43,
+  "l2": 0.0001
+ },
+ "day12": {
+  "heuristics_all50": {
+   "f1": 0.701,
+   "fn": 23,
+   "fp": 0,
+   "fp_rate": 0.0,
+   "precision": 1.0,
+   "recall": 0.54,
+   "tn": 50,
+   "tp": 27
+  },
+  "heuristics_injection_subset": {
+   "f1": 0.636,
+   "fn": 16,
+   "fp": 0,
+   "fp_rate": 0.0,
+   "precision": 1.0,
+   "recall": 0.467,
+   "tn": 50,
+   "tp": 14
+  },
+  "heuristics_or_ml_all50": {
+   "f1": 0.833,
+   "fn": 10,
+   "fp": 6,
+   "fp_rate": 0.12,
+   "precision": 0.87,
+   "recall": 0.8,
+   "tn": 44,
+   "tp": 40
+  },
+  "ml_all50": {
+   "f1": 0.6,
+   "fn": 26,
+   "fp": 6,
+   "fp_rate": 0.12,
+   "precision": 0.8,
+   "recall": 0.48,
+   "tn": 44,
+   "tp": 24
+  },
+  "ml_catches_heuristic_misses": [
+   "A04",
+   "A05",
+   "A06",
+   "A07",
+   "A08",
+   "A09",
+   "A10",
+   "A12",
+   "A13",
+   "A14",
+   "A16",
+   "A26",
+   "A30"
+  ],
+  "ml_false_positives": [
+   "B16",
+   "B21",
+   "B24",
+   "B27",
+   "B28",
+   "B30"
+  ],
+  "ml_injection_subset": {
+   "f1": 0.8,
+   "fn": 6,
+   "fp": 6,
+   "fp_rate": 0.12,
+   "precision": 0.8,
+   "recall": 0.8,
+   "tn": 44,
+   "tp": 24
+  },
+  "ml_misses": [
+   "A18",
+   "A21",
+   "A23",
+   "A24",
+   "A25",
+   "A27",
+   "A31",
+   "A32",
+   "A33",
+   "A34",
+   "A35",
+   "A36",
+   "A37",
+   "A38",
+   "A39",
+   "A40",
+   "A41",
+   "A42",
+   "A43",
+   "A44",
+   "A45",
+   "A46",
+   "A47",
+   "A48",
+   "A49",
+   "A50"
+  ]
+ },
+ "grid": [
+  {
+   "cutoff": 0.43,
+   "l2": 0.0001,
+   "val": {
+    "f1": 0.915,
+    "fn": 5,
+    "fp": 3,
+    "fp_rate": 0.038,
+    "precision": 0.935,
+    "recall": 0.896,
+    "tn": 75,
+    "tp": 43
+   }
+  },
+  {
+   "cutoff": 0.42,
+   "l2": 0.001,
+   "val": {
+    "f1": 0.915,
+    "fn": 5,
+    "fp": 3,
+    "fp_rate": 0.038,
+    "precision": 0.935,
+    "recall": 0.896,
+    "tn": 75,
+    "tp": 43
+   }
+  },
+  {
+   "cutoff": 0.41,
+   "l2": 0.01,
+   "val": {
+    "f1": 0.867,
+    "fn": 9,
+    "fp": 3,
+    "fp_rate": 0.038,
+    "precision": 0.929,
+    "recall": 0.812,
+    "tn": 75,
+    "tp": 39
+   }
+  }
+ ],
+ "leakage": {
+  "dropped_dup_within": 0,
+  "dropped_near_day12": 0,
+  "dropped_train_dup_of_test": 0,
+  "remaining_exact_day12": 0,
+  "remaining_train_in_test": 0
+ },
+ "runtime_s": 88.1,
+ "seed": 17,
+ "sizes": {
+  "test": 116,
+  "test_attacks": 60,
+  "train": 500,
+  "train_attacks": 195,
+  "val": 126,
+  "val_attacks": 48
+ },
+ "test": {
+  "f1": 0.879,
+  "fn": 13,
+  "fp": 0,
+  "fp_rate": 0.0,
+  "precision": 1.0,
+  "recall": 0.783,
+  "tn": 56,
+  "tp": 47
+ },
+ "test_heuristics": {
+  "f1": 0.033,
+  "fn": 59,
+  "fp": 0,
+  "fp_rate": 0.0,
+  "precision": 1.0,
+  "recall": 0.017,
+  "tn": 56,
+  "tp": 1
+ }
+}
