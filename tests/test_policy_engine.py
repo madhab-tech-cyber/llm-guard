@@ -5,6 +5,7 @@ from pathlib import Path
 
 from policy_engine.audit import AuditWriter
 from policy_engine.engine import decide, risk_score
+from policy_engine.rate_limit import RateLimiter
 
 
 def policy(action="FLAG"):
@@ -45,6 +46,14 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(risk_score({"injection": 0.4, "pii": 0.7}, stage="input"), 0.7)
         with self.assertRaises(ValueError):
             risk_score({"injection": float("nan")}, stage="input")
+
+    def test_quota_denial_is_audited(self):
+        quota = RateLimiter(limit=1, window_seconds=60)
+        first = self.run_decision(quota=quota, caller_id="lab-caller")
+        second = self.run_decision(quota=quota, caller_id="lab-caller")
+        self.assertEqual(first.action, "ALLOW")
+        self.assertEqual((second.action, second.reason_code), ("BLOCK", "QUOTA_DENIED"))
+        self.assertEqual(self.run_decision(quota=quota).action, "BLOCK")
 
     def test_guard_block_overrides_allow_rule(self):
         self.assertEqual(self.run_decision(policy=policy("ALLOW"), verdict="blocked", scores={"injection": 0.9}).action, "BLOCK")

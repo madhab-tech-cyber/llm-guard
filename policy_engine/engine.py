@@ -8,6 +8,7 @@ from typing import Any
 from .audit import AuditError, AuditWriter
 from .loader import PolicyError
 from .matcher import matching_rules
+from .rate_limit import RateLimiter
 
 _SEVERITY = {"low": 0, "medium": 1, "high": 2, "critical": 3}
 _ACTION = {"ALLOW": 0, "FLAG": 1, "REDACT": 2, "BLOCK": 3}
@@ -35,14 +36,17 @@ class Decision:
 
 def decide(*, policy: dict[str, Any], request_id: str, stage: str,
            verdict: str, scores: dict[str, float], masked_available: bool,
-           audit: AuditWriter) -> Decision:
+           audit: AuditWriter, quota: RateLimiter | None = None,
+           caller_id: str | None = None) -> Decision:
     """Decide and audit. Any invalid signal or failed append returns BLOCK."""
     action, code, rule_id = "BLOCK", "INVALID_CONTEXT", None
     try:
         if verdict not in ("clean", "suspicious", "blocked") or type(masked_available) is not bool:
             raise PolicyError("Invalid guard result")
         matches = matching_rules(policy, stage, scores)
-        if verdict == "blocked":
+        if quota is not None and (caller_id is None or not quota.allow(caller_id)):
+            action, code = "BLOCK", "QUOTA_DENIED"
+        elif verdict == "blocked":
             action, code = "BLOCK", "GUARD_BLOCKED"
         elif matches:
             first = max(matches, key=lambda rule: (_SEVERITY[rule["severity"]], _ACTION[rule["action"]]))

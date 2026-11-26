@@ -1,25 +1,29 @@
 # Member 4 policy engine (lab)
 
-Day 6 provides a standalone strict YAML loader. The Member 1–3 signal interface is still under review; no runtime decision or enforcement is implemented here yet.
+Standalone policy loader, matcher, decision engine, masked audit writer and process-local quota. The Member 1–3 signal interface remains a draft; this module is not wired into the proxy and does not enforce traffic.
 
-Install `policy-engine/requirements.txt` in an isolated Python environment, then run `python -m unittest discover -s tests -p 'test_policy_loader.py'`. `policy_engine.loader.load_policy(path)` returns a validated policy dictionary or raises `PolicyError`. Files are limited to 64 KiB and 100 rules. Unknown fields, duplicate keys, YAML anchors/aliases, invalid scores and unknown actions are rejected.
+## Install and test
 
-Day 7 adds `matching_rules(policy, stage, scores)`. It returns matching rules in policy order and rejects missing or invalid required scores. It does not make a final decision; that is Day 8. Run all current tests with `python -m unittest discover -s tests -p "test_policy_*.py"`.
+In an isolated Python environment, install `policy-engine/requirements.txt`, then run from the repository root:
 
-Days 8–9 add standalone `decide(...)` and `AuditWriter`. Decisions use the first matching rule after validation, with a clean default ALLOW; blocked guard results and invalid context take BLOCK. The audit writer appends minimized JSONL records with fsync. Audit failure returns BLOCK with `audit_ok=False`. FLAG delivery and the cross-member signal adapter still need team agreement.
-
-Day 10–11 standalone use:
-
-```python
-from policy_engine import AuditWriter, decide, load_policy
-policy = load_policy("policy-engine/examples/lab-policy.yaml")
-result = decide(policy=policy, request_id="synthetic_1", stage="input",
-                verdict="clean", scores={"injection": 0.01},
-                masked_available=False, audit=AuditWriter("audit.jsonl"))
+```sh
+python3 -m unittest discover -s tests -p 'test_policy*.py' -q
 ```
 
-The example is synthetic and uses draft score names. An actual pipeline adapter, verified mask provenance and FLAG delivery semantics require Member 1–3 agreement. The audit file contains only bounded identifiers and static reason codes. Run `python -m unittest discover -s tests -p 'test_policy_*.py'` after installing `policy-engine/requirements.txt`.
+## Standalone call
 
-Days 16–17 select the highest severity among matching rules (`critical > high > medium > low`); ties choose the stricter action (`BLOCK > REDACT > FLAG > ALLOW`), then preserve file order. `risk_score` returns the maximum validated detector score for the stage. These are standalone lab semantics pending team agreement.
+```python
+from policy_engine import AuditWriter, RateLimiter, decide, load_policy
+policy = load_policy("policy-engine/examples/lab-policy.yaml")
+quota = RateLimiter(limit=10, window_seconds=60)
+result = decide(policy=policy, request_id="synthetic_1", stage="input",
+                verdict="clean", scores={"injection": 0.01},
+                masked_available=False, audit=AuditWriter("audit.jsonl"),
+                quota=quota, caller_id="lab-caller")
+```
 
-Days 18–19: audit records already include the validated policy version and selected rule ID for tracing. `RateLimiter` adds a bounded, process-local fixed-window quota keyed by an opaque caller ID; invalid IDs, clock regression and key-capacity exhaustion deny. It is not distributed and is not yet connected to the proxy.
+`load_policy(path)` validates a YAML file of at most 64 KiB and 100 rules; invalid files raise `PolicyError`. `decide` returns `Decision(action, reason_code, rule_id, audit_ok)`. It validates detector scores, selects the highest severity matching rule, uses stricter action for severity ties, and returns `BLOCK` for invalid context, missing verified masking, quota denial or unavailable audit. `FLAG` delivery semantics remain unapproved.
+
+`RateLimiter` is optional and process-local. An invalid caller key, quota exhaustion, clock regression or full key table denies. It does not provide distributed or durable limits. The quota key must be an opaque ID, not a user email or prompt text. Each decision attempts a minimized JSONL audit append with UTC time, opaque request ID, stage, action, policy version, static reason code and selected rule ID. Configure the path explicitly; do not store raw prompt, reply or scanner reasons.
+
+Member 1–3 input mappings, verified mask provenance and delivery semantics need cross-member sign-off. Member 5 may run the standalone synthetic harness today; CSV/JSON export and a production adapter are planned.
