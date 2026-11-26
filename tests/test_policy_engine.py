@@ -62,6 +62,12 @@ class EngineTests(unittest.TestCase):
         self.assertEqual(self.run_decision(policy=policy("REDACT"), scores={"injection": 0.9}).reason_code, "MASK_UNAVAILABLE")
         self.assertEqual(self.run_decision(policy=policy("REDACT"), scores={"injection": 0.9}, masked_available=True).action, "REDACT")
 
+    def test_invalid_context_and_missing_mask_fail_closed(self):
+        self.assertEqual(self.run_decision(verdict="broken").action, "BLOCK")
+        self.assertEqual(self.run_decision(scores={"injection": float("inf")}).action, "BLOCK")
+        self.assertEqual(self.run_decision(policy=policy("REDACT"),
+                                           scores={"injection": 0.9}).action, "BLOCK")
+
     def test_bad_signal_or_audit_failure_blocks(self):
         self.assertEqual(self.run_decision(scores={}).action, "BLOCK")
         missing = AuditWriter(Path(self.temp.name) / "missing" / "audit.jsonl")
