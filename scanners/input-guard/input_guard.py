@@ -55,7 +55,17 @@ crashes, the shadow score is None and a "shadow_reasons" line says why;
 the verdict is still decided by the heuristics alone. The model trains
 once on first use (about 1-3 s on the 80-prompt seed set), then is
 cached. Early returns (empty prompt, over the limits) skip the model
-and report the shadow score as None. Day 18 decides the default.
+and report the shadow score as None. (Day 17: the model now loads from
+day17_model.json instead of training at start-up.)
+
+Day 18 (heuristic vs ML, "Referee Mode"): check_prompt() takes a mode -
+"heuristics" (default), "or" or "referee" - see GUARD_MODE and combine().
+The default stays heuristics because the measured Day 12 false-alarm rate
+of both combined modes is 0.12, above the 0.05 target. A new top-level
+"referee" key reports the mode, the heuristic verdict, the ML score, and
+"referee_opinion" (what Referee mode would say) on every call. In referee
+mode ML can only lift clean -> suspicious; it never blocks. If ML is
+missing or crashes, every mode falls back to heuristics only.
 Lab-only: synthetic prompts only, never real user data.
 """
 import time
@@ -75,6 +85,49 @@ except Exception as _exc:  # pragma: no cover
 
 # Detector 6 (sanitizer) is Day 21 work. Key present, score 0.00, no-op.
 _SANITIZER_SCORE = 0.0
+
+# Day 18: how heuristics and ML are combined. Three modes:
+#   "heuristics" - heuristics alone decide (Days 10-17 behaviour).
+#   "or"         - ML acts like one more detector: ML >= OR_CUTOFF makes a
+#                  clean prompt suspicious, ML >= ML_BLOCK_AT blocks it.
+#   "referee"    - heuristics decide; ML may only upgrade a heuristic
+#                  "clean" to "suspicious" when ML >= REFEREE_CUTOFF.
+#                  ML never blocks and never downgrades.
+# The default is picked in day18-heuristic-vs-ml.md from measured numbers.
+# The other modes stay selectable as fallbacks: check_prompt(mode=...).
+# Day 18 decision (measured, see day18-heuristic-vs-ml.md): default stays
+# "heuristics". Referee and OR both raise the Day 12 false-alarm rate to
+# 0.12 (target <= 0.05) and re-flag B24/B27/B30 that Day 14 fixed.
+# Referee is the ready fallback: check_prompt(text, mode="referee").
+GUARD_MODE = "heuristics"
+MODES = ("heuristics", "or", "referee")
+OR_CUTOFF = 0.43            # Day 17 ML-alone cutoff (validation-picked)
+ML_BLOCK_AT = 0.90
+REFEREE_CUTOFF = 0.43       # Day 18: picked on the Day 17 validation split only
+
+
+def combine(heur_verdict, ml_score, mode, referee_cutoff=None):
+    """Day 18: final verdict from the heuristic verdict + ML score.
+
+    Returns (verdict, action). Pure function, no I/O, easy to test.
+    ML missing (None) always means "heuristics only" - never a block.
+    """
+    if mode not in MODES:
+        raise ValueError(f"unknown guard mode: {mode!r}")
+    if mode == "heuristics" or ml_score is None or heur_verdict == "blocked":
+        return heur_verdict, ("ml_unavailable" if ml_score is None and mode != "heuristics"
+                              else "none")
+    if mode == "or":
+        if ml_score >= ML_BLOCK_AT:
+            return "blocked", "ml_blocked"
+        if heur_verdict == "clean" and ml_score >= OR_CUTOFF:
+            return "suspicious", "ml_upgraded"
+        return heur_verdict, "none"
+    # referee
+    cut = REFEREE_CUTOFF if referee_cutoff is None else referee_cutoff
+    if cut is not None and heur_verdict == "clean" and ml_score >= cut:
+        return "suspicious", "ml_upgraded"
+    return heur_verdict, "none"
 
 
 def _run(name, fn, prompt_text, scores, reasons, timings):
@@ -117,10 +170,28 @@ def _shadow(prompt_text, run=True):
     return out
 
 
+def _referee_info(mode, heur_verdict, ml_score, action):
+    cut = {"heuristics": None, "or": OR_CUTOFF, "referee": REFEREE_CUTOFF}[mode]
+    # referee_opinion: what Referee mode would say, in EVERY mode, so the
+    # Policy Engine / evaluation can see the ML second opinion even when
+    # it does not change the verdict.
+    opinion = combine(heur_verdict, ml_score, "referee")[0]
+    return {"mode": mode, "heuristic_verdict": heur_verdict,
+            "ml_score": ml_score, "cutoff": cut, "action": action,
+            "referee_opinion": opinion}
+
+
 def check_prompt(prompt_text: str, source: str = "user-typed",
                  turn_number: int = 1, history_summary: str = "",
-                 language: str = "en") -> dict:
-    """One entry point for the whole Input Guard. Day 5 output shape."""
+                 language: str = "en", mode: str = None) -> dict:
+    """One entry point for the whole Input Guard. Day 5 output shape.
+
+    mode (Day 18): None = GUARD_MODE default; or "heuristics" / "or" /
+    "referee" to pick a fallback explicitly.
+    """
+    mode = GUARD_MODE if mode is None else mode
+    if mode not in MODES:
+        raise ValueError(f"unknown guard mode: {mode!r}")
     scores, reasons, timings = {}, [], {}
     # v1: source / turn / history are accepted and recorded, not yet
     # used for detection. Multi-turn + indirect cases are Days 21-23.
@@ -141,7 +212,8 @@ def check_prompt(prompt_text: str, source: str = "user-typed",
                                         "jailbreak_encoding": 0.0,
                                         "pii": 0.0, "secrets": 0.0,
                                         "limits": 0.0, "sanitizer": 0.0},
-                "context": _context, **_shadow(prompt_text, run=False)}
+                "context": _context, **_shadow(prompt_text, run=False),
+                "referee": _referee_info(mode, "blocked", None, "none")}
 
     if not prompt_text or not prompt_text.strip():
         # Day 5 says the sender never sends an empty prompt. If one
@@ -156,7 +228,8 @@ def check_prompt(prompt_text: str, source: str = "user-typed",
                                         "jailbreak_encoding": 0.0,
                                         "pii": 0.0, "secrets": 0.0,
                                         "limits": 0.0, "sanitizer": 0.0},
-                "context": _context, **_shadow(prompt_text, run=False)}
+                "context": _context, **_shadow(prompt_text, run=False),
+                "referee": _referee_info(mode, "blocked", None, "none")}
 
     # 1. Limits gate first — an oversize prompt is stopped, not judged.
     limits = _run("limits", check_limits, prompt_text,
@@ -166,7 +239,8 @@ def check_prompt(prompt_text: str, source: str = "user-typed",
     if limits["verdict"] == "blocked":
         return {"verdict": "blocked", "reasons": reasons, "scores": scores,
                 "masked_prompt": "", "detector_timings_ms": timings,
-                "context": _context, **_shadow(prompt_text, run=False)}
+                "context": _context, **_shadow(prompt_text, run=False),
+                "referee": _referee_info(mode, "blocked", None, "none")}
 
     # 2. The four judging detectors, worst score wins.
     encoding = _run("jailbreak_encoding", detect_encoded, prompt_text,
@@ -189,9 +263,22 @@ def check_prompt(prompt_text: str, source: str = "user-typed",
         verdict, masked_out = "suspicious", masked
     else:
         verdict, masked_out = "clean", prompt_text
-    return {"verdict": verdict, "reasons": reasons, "scores": scores,
+    shadow = _shadow(prompt_text)
+    ml = shadow["shadow_scores"]["injection_ml"]
+    final, action = combine(verdict, ml, mode)
+    if final != verdict:
+        if final == "blocked":
+            reasons.append(f"ML injection classifier {ml:.2f} >= {ML_BLOCK_AT:.2f} "
+                           f"(mode {mode}): blocked.")
+            masked_out = ""
+        else:  # clean -> suspicious; nothing was masked, forward as-is
+            reasons.append(f"Referee: ML injection classifier {ml:.2f} >= cutoff "
+                           f"(mode {mode}): upgraded clean to suspicious.")
+            masked_out = masked
+    return {"verdict": final, "reasons": reasons, "scores": scores,
             "masked_prompt": masked_out, "detector_timings_ms": timings,
-            "context": _context, **_shadow(prompt_text)}
+            "context": _context, **shadow,
+            "referee": _referee_info(mode, verdict, ml, action)}
 
 
 if __name__ == "__main__":
