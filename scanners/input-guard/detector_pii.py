@@ -185,8 +185,24 @@ _FINDERS = [_find_email, _find_phone, _find_aadhaar, _find_pan, _find_passport,
             _find_driving_licence, _find_ip, _find_gps, _find_name, _find_handle]
 
 
+# Day 19: confidence per PII type — how much the match itself can be
+# trusted. 0.95 = exact format plus a check digit (email shape,
+# Verhoeff-checked Aadhaar, Luhn-checked card, strict IFSC, GPS
+# coordinates). 0.80 = strict format plus a nearby cue word (PAN,
+# passport, phone, IP, driving licence). 0.65 = cue-word based and
+# fuzzy (address, date of birth, name, handle, bank account digits).
+# No finding at all is 0.85: the listed types are swept well, but a
+# type outside the list could still be present. v1 guesses.
+_TYPE_CONFIDENCE = {
+    "EMAIL": 0.95, "AADHAAR": 0.95, "CARD": 0.95, "IFSC": 0.95,
+    "GPS": 0.95, "PAN": 0.80, "PASSPORT": 0.80, "PHONE": 0.80,
+    "IP": 0.80, "DRIVING_LICENCE": 0.80, "BANK_ACCOUNT": 0.65,
+    "ADDRESS": 0.65, "DOB": 0.65, "NAME": 0.65, "HANDLE": 0.65,
+}
+
+
 def detect_pii(prompt_text: str) -> dict:
-    """Detector 3 v1. Returns verdict, score, reasons, findings, masked prompt."""
+    """Detector 3 v1. Returns verdict, score, confidence, reasons, findings, masked prompt."""
     try:
         found = []
         for finder in _FINDERS:
@@ -203,12 +219,15 @@ def detect_pii(prompt_text: str) -> dict:
         for start, end, typ, _ in sorted(kept, reverse=True):
             masked = masked[:start] + f"[REDACTED:{typ}]" + masked[end:]
         verdict = "suspicious" if kept else "clean"
+        confidence = (max(_TYPE_CONFIDENCE.get(typ, 0.65)
+                          for _, _, typ, _ in kept) if kept else 0.85)
         return {"verdict": verdict, "score": 0.70 if kept else 0.0,
+                "confidence": confidence,
                 "reasons": reasons,
                 "findings": [{"type": typ} for _, _, typ, _ in kept],
                 "masked_prompt": masked}
     except Exception as exc:  # fail closed (Day 4 design)
-        return {"verdict": "blocked", "score": 1.0,
+        return {"verdict": "blocked", "score": 1.0, "confidence": 0.0,
                 "reasons": [f"PII detector crashed, failing closed: {exc}."],
                 "findings": [], "masked_prompt": prompt_text}
 

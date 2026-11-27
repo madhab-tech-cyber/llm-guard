@@ -85,10 +85,31 @@ RULES = [
 ]
 
 
+def _confidence(best: float, n_fired: int) -> float:
+    """Day 19: how sure is Detector 1 that its reading is right?
+
+    Score says how bad the match looks; confidence says how much the
+    match can be trusted. Two independent rules firing is stronger
+    evidence than one; a verbatim high-signal phrase (0.90+) is
+    stronger than a single weaker pattern. No rule firing is only
+    0.60: Day 13 measured recall 0.52, so the rules miss about half
+    of attacks — a clean read here is weak evidence, not proof.
+    v1 guesses; re-measure on the Day 27 200-prompt set.
+    """
+    if n_fired >= 2:
+        return 0.95
+    if best >= 0.90:
+        return 0.90
+    if best >= 0.50:
+        return 0.75
+    return 0.60
+
+
 def detect_injection(prompt_text: str) -> dict:
-    """Detector 1 v1.1. Returns score, reasons, verdict (Day 4 v1 thresholds)."""
+    """Detector 1 v1.1. Returns score, confidence, reasons, verdict (Day 4 v1 thresholds)."""
     reasons = []
     best = 0.0
+    n_fired = 0
     # Day 14: a whole prompt that only asks what the 'ignore ...'
     # phrase means is talking about the attack, not making it.
     skip_ignore = bool(_META_QUESTION_RE.search(prompt_text))
@@ -98,13 +119,16 @@ def detect_injection(prompt_text: str) -> dict:
         if re.search(pattern, prompt_text, re.IGNORECASE | re.MULTILINE):
             reasons.append(f"Injection detector {score:.2f}: {reason}.")
             best = max(best, score)
+            n_fired += 1
     if best >= 0.90:
         verdict = "blocked"
     elif best >= 0.50:
         verdict = "suspicious"
     else:
         verdict = "clean"
-    return {"verdict": verdict, "score": best, "reasons": reasons,
+    return {"verdict": verdict, "score": best,
+            "confidence": _confidence(best, n_fired),
+            "reasons": reasons,
             "masked_prompt": prompt_text}  # Detector 1 never changes the prompt; masking is Detector 3/4's job
 
 

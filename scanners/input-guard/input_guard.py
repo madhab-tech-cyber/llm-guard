@@ -66,6 +66,18 @@ of both combined modes is 0.12, above the 0.05 target. A new top-level
 "referee_opinion" (what Referee mode would say) on every call. In referee
 mode ML can only lift clean -> suspicious; it never blocks. If ML is
 missing or crashes, every mode falls back to heuristics only.
+Day 19 (confidence scores): every detector now also reports a
+"confidence" (0.0-1.0) beside its "score", and check_prompt() returns
+a top-level "confidences" dict mirroring "scores". Score says how bad
+a finding looks; confidence says how much the finding can be trusted
+— so Member 4's Policy Engine gets scores, not just yes / no, and
+can weigh a high-score/low-confidence flag differently from a
+high-score/high-confidence one. Confidence NEVER changes the verdict:
+the Day 4/5 thresholds still run on scores alone. A detector that
+was never run (early return) reports confidence 0.0; a crashed
+detector reports confidence 0.0 and its block comes from the
+fail-closed policy, not from a measurement. The ML shadow reports
+its confidence under "shadow_confidences".
 Lab-only: synthetic prompts only, never real user data.
 """
 import time
@@ -130,17 +142,21 @@ def combine(heur_verdict, ml_score, mode, referee_cutoff=None):
     return heur_verdict, "none"
 
 
-def _run(name, fn, prompt_text, scores, reasons, timings):
+def _run(name, fn, prompt_text, scores, confidences, reasons, timings):
     """Run one detector, timed. A crash fails closed, never open."""
     started = time.perf_counter()
     try:
         result = fn(prompt_text)
         scores[name] = float(result.get("score", 0.0))
+        # Day 19: confidence rides beside the score. A detector that
+        # does not report one yet is treated as "no measurement".
+        confidences[name] = float(result.get("confidence", 0.0))
         reasons.extend(result.get("reasons", []))
         timings[name] = round((time.perf_counter() - started) * 1000, 3)
         return result
     except Exception as exc:  # fail closed (Day 4 design, Day 46 target)
         scores[name] = 1.0
+        confidences[name] = 0.0  # Day 19: no measurement, block is policy
         reasons.append(f"{name} detector crashed, failing closed: {exc}.")
         timings[name] = round((time.perf_counter() - started) * 1000, 3)
         return {"verdict": "blocked", "score": 1.0, "reasons": [],
@@ -150,6 +166,7 @@ def _run(name, fn, prompt_text, scores, reasons, timings):
 def _shadow(prompt_text, run=True):
     """Day 16: run the ML classifier as a shadow. Never touches the verdict."""
     out = {"shadow_scores": {"injection_ml": None},
+           "shadow_confidences": {"injection_ml": None},
            "shadow_timings_ms": {"injection_ml": 0.0},
            "shadow_reasons": []}
     if not run:
@@ -160,9 +177,13 @@ def _shadow(prompt_text, run=True):
             raise RuntimeError(f"ML module not importable: {_ML_IMPORT_ERROR}")
         result = detect_injection_ml(prompt_text)
         out["shadow_scores"]["injection_ml"] = float(result.get("score", 0.0))
+        # Day 19: ML confidence is |p - 0.5| * 2, from detector_ml.
+        out["shadow_confidences"]["injection_ml"] = float(
+            result.get("confidence", 0.0))
         out["shadow_reasons"].extend(result.get("reasons", []))
     except Exception as exc:  # shadow only: record, do not fail closed
         out["shadow_scores"]["injection_ml"] = None
+        out["shadow_confidences"]["injection_ml"] = None
         out["shadow_reasons"].append(
             f"ML injection classifier crashed (shadow only, verdict unchanged): {exc}.")
     out["shadow_timings_ms"]["injection_ml"] = round(
@@ -192,7 +213,13 @@ def check_prompt(prompt_text: str, source: str = "user-typed",
     mode = GUARD_MODE if mode is None else mode
     if mode not in MODES:
         raise ValueError(f"unknown guard mode: {mode!r}")
-    scores, reasons, timings = {}, [], {}
+    scores, confidences, reasons, timings = {}, {}, [], {}
+    # Day 19: detectors that never run (early return) report 0.0
+    # confidence — no measurement was made. Limits is the exception:
+    # it is a counted measurement, so its confidence is 1.0.
+    _EARLY_CONFIDENCES = {"injection": 0.0, "jailbreak_encoding": 0.0,
+                          "pii": 0.0, "secrets": 0.0, "limits": 1.0,
+                          "sanitizer": 0.0}
     # v1: source / turn / history are accepted and recorded, not yet
     # used for detection. Multi-turn + indirect cases are Days 21-23.
     _context = {"source": source, "turn_number": turn_number,
@@ -207,6 +234,7 @@ def check_prompt(prompt_text: str, source: str = "user-typed",
                 "scores": {"injection": 0.0, "jailbreak_encoding": 0.0,
                            "pii": 0.0, "secrets": 0.0, "limits": 1.0,
                            "sanitizer": _SANITIZER_SCORE},
+                "confidences": dict(_EARLY_CONFIDENCES),
                 "masked_prompt": "",
                 "detector_timings_ms": {"injection": 0.0,
                                         "jailbreak_encoding": 0.0,
@@ -223,6 +251,7 @@ def check_prompt(prompt_text: str, source: str = "user-typed",
                 "scores": {"injection": 0.0, "jailbreak_encoding": 0.0,
                            "pii": 0.0, "secrets": 0.0, "limits": 1.0,
                            "sanitizer": _SANITIZER_SCORE},
+                "confidences": dict(_EARLY_CONFIDENCES),
                 "masked_prompt": "",
                 "detector_timings_ms": {"injection": 0.0,
                                         "jailbreak_encoding": 0.0,
@@ -233,26 +262,28 @@ def check_prompt(prompt_text: str, source: str = "user-typed",
 
     # 1. Limits gate first — an oversize prompt is stopped, not judged.
     limits = _run("limits", check_limits, prompt_text,
-                  scores, reasons, timings)
+                  scores, confidences, reasons, timings)
     scores["sanitizer"] = _SANITIZER_SCORE
+    confidences["sanitizer"] = 0.0  # Day 19: sanitizer not built, no measurement
     timings["sanitizer"] = 0.0
     if limits["verdict"] == "blocked":
         return {"verdict": "blocked", "reasons": reasons, "scores": scores,
+                "confidences": confidences,
                 "masked_prompt": "", "detector_timings_ms": timings,
                 "context": _context, **_shadow(prompt_text, run=False),
                 "referee": _referee_info(mode, "blocked", None, "none")}
 
     # 2. The four judging detectors, worst score wins.
     encoding = _run("jailbreak_encoding", detect_encoded, prompt_text,
-                    scores, reasons, timings)
+                    scores, confidences, reasons, timings)
     _run("injection", detect_injection, prompt_text,
-         scores, reasons, timings)
-    pii = _run("pii", detect_pii, prompt_text, scores, reasons, timings)
+         scores, confidences, reasons, timings)
+    pii = _run("pii", detect_pii, prompt_text, scores, confidences, reasons, timings)
     # Mask PII first, then run secrets on the masked text (safe order:
     # a secret inside a PII span is already gone).
     masked = pii.get("masked_prompt", prompt_text)
     secrets = _run("secrets", detect_secrets, masked,
-                    scores, reasons, timings)
+                    scores, confidences, reasons, timings)
     masked = secrets.get("masked_prompt", masked)
 
     best = max(scores.values())
@@ -276,6 +307,7 @@ def check_prompt(prompt_text: str, source: str = "user-typed",
                            f"(mode {mode}): upgraded clean to suspicious.")
             masked_out = masked
     return {"verdict": final, "reasons": reasons, "scores": scores,
+            "confidences": confidences,
             "masked_prompt": masked_out, "detector_timings_ms": timings,
             "context": _context, **shadow,
             "referee": _referee_info(mode, verdict, ml, action)}
