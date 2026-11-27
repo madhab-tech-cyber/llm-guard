@@ -65,11 +65,11 @@ def check_limits(prompt_text: str) -> dict:
     if counts["lines"] > MAX_LINES:
         over.append(f"{counts['lines']} lines (limit {MAX_LINES})")
     if over:
-        return {"verdict": "blocked", "score": 1.0,
+        return {"verdict": "blocked", "score": 1.0, "confidence": 1.0,
                 "reasons": [f"Limits detector 1.00: prompt over the limit — "
                             + "; ".join(over) + "."],
                 "counts": counts, "masked_prompt": prompt_text}
-    return {"verdict": "clean", "score": 0.0, "reasons": [],
+    return {"verdict": "clean", "score": 0.0, "confidence": 1.0, "reasons": [],
             "counts": counts, "masked_prompt": prompt_text}
 
 

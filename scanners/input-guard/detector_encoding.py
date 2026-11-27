@@ -100,11 +100,19 @@ def find_decodings(prompt_text: str) -> list:
 
 
 def detect_encoded(prompt_text: str) -> dict:
-    """Detector 2 v1. Decodes, then runs Detector 1 on raw + decoded text."""
+    """Detector 2 v1. Decodes, then runs Detector 1 on raw + decoded text.
+
+    Day 19 confidence: decoded text that scores is exact evidence
+    (0.90); a leetspeak-only reveal is weaker (0.70); otherwise the
+    raw injection detector's own confidence stands. A crash returns
+    confidence 0.0 — the block comes from the fail-closed policy,
+    not from any measurement.
+    """
     try:
         raw = detect_injection(prompt_text)
         decodings = find_decodings(prompt_text)
         best = raw["score"]
+        confidence = raw["confidence"]
         reasons = list(raw["reasons"])
         decoded_hits = []
         for method, decoded in decodings:
@@ -115,12 +123,15 @@ def detect_encoded(prompt_text: str) -> dict:
                     f"Encoding detector: {method} decoded to text that scores "
                     f"{hit['score']:.2f} ({hit['reasons'][0] if hit['reasons'] else 'no rule'}).")
                 best = max(best, hit["score"])
+                if hit["score"] >= 0.50:
+                    confidence = max(confidence, 0.90)
         # Leetspeak normalisation: suspicious only, never blocked on its own.
         leet = prompt_text.translate(LEET_MAP)
         if leet != prompt_text:
             hit = detect_injection(leet)
             if hit["score"] >= 0.90 and raw["score"] < 0.90 and not decoded_hits:
                 best = max(best, 0.80)
+                confidence = max(confidence, 0.70)
                 reasons.append("Encoding detector 0.80: leetspeak normalisation "
                                "reveals an injection pattern.")
         if best >= 0.90:
@@ -129,11 +140,12 @@ def detect_encoded(prompt_text: str) -> dict:
             verdict = "suspicious"
         else:
             verdict = "clean"
-        return {"verdict": verdict, "score": best, "reasons": reasons,
+        return {"verdict": verdict, "score": best, "confidence": confidence,
+                "reasons": reasons,
                 "decodings": [{"method": m, "decoded": d} for m, d, _ in decoded_hits],
                 "masked_prompt": prompt_text}
     except Exception as exc:  # fail closed (Day 4 design)
-        return {"verdict": "blocked", "score": 1.0,
+        return {"verdict": "blocked", "score": 1.0, "confidence": 0.0,
                 "reasons": [f"Encoding detector crashed, failing closed: {exc}."],
                 "decodings": [], "masked_prompt": prompt_text}
 

@@ -147,7 +147,17 @@ _TEST_KEY_SCORE = 0.50
 
 
 def detect_secrets(prompt_text: str) -> dict:
-    """Detector 4 v1. Returns verdict, score, reasons, masked prompt (Day 5 shape)."""
+    """Detector 4 v1. Returns verdict, score, confidence, reasons, masked prompt (Day 5 shape).
+
+    Day 19 confidence: a prefix that proves the format (0.95 finder
+    score: AKIA, ghp_, sk_live_, BEGIN PRIVATE KEY, eyJ, DB string)
+    is 0.95 confident; a pattern-plus-context match (0.90 finder
+    score: generic key, password, webhook, AWS secret) is 0.85. A
+    test key is still 0.95 confident as a finding — its format is
+    exact, only its severity is low (0.50). No finding is 0.80: the
+    ten listed shapes are swept well, but a novel secret format
+    could still pass. v1 guesses.
+    """
     found = []  # (start, end, TYPE, reason, score)
     for finder, score in _FINDERS:
         for start, end, typ, reason in finder(prompt_text):
@@ -156,9 +166,11 @@ def detect_secrets(prompt_text: str) -> dict:
             else:
                 found.append((start, end, typ, reason, score))
     if not found:
-        return {"verdict": "clean", "score": 0.0, "reasons": [],
-                "masked_prompt": prompt_text}
+        return {"verdict": "clean", "score": 0.0, "confidence": 0.80,
+                "reasons": [], "masked_prompt": prompt_text}
     best = max(f[4] for f in found)
+    confidence = max(0.95 if (f[2] == "STRIPE_TEST_KEY" or f[4] >= 0.95) else 0.85
+                     for f in found)
     reasons = [f"Secrets detector {f[4]:.2f}: {f[3]}." for f in found]
     if best >= 0.90:
         verdict = "blocked"
@@ -170,8 +182,8 @@ def detect_secrets(prompt_text: str) -> dict:
     masked = prompt_text
     for start, end, typ, _reason, _score in sorted(found, key=lambda f: -f[1]):
         masked = masked[:start] + f"[REDACTED:{typ}]" + masked[end:]
-    return {"verdict": verdict, "score": best, "reasons": reasons,
-            "masked_prompt": masked}
+    return {"verdict": verdict, "score": best, "confidence": confidence,
+            "reasons": reasons, "masked_prompt": masked}
 
 
 if __name__ == "__main__":

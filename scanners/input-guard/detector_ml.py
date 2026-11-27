@@ -182,8 +182,13 @@ def detect_injection_ml(prompt_text: str) -> dict:
         terms = ", ".join(model.top_terms(prompt_text)) or "overall wording"
         reasons.append(f"ML injection classifier {score:.2f} (shadow): "
                        f"strongest signals: {terms}.")
-    return {"verdict": verdict, "score": score, "reasons": reasons,
-            "masked_prompt": prompt_text}
+    # Day 19 confidence: distance from the coin-flip. A probability near
+    # 0.50 means the model is guessing (confidence ~0); near 0 or 1 it
+    # is sure. This is the ML confidence, reported under shadow_scores
+    # beside the score — it never changes the verdict.
+    confidence = round(abs(score - 0.5) * 2, 3)
+    return {"verdict": verdict, "score": score, "confidence": confidence,
+            "reasons": reasons, "masked_prompt": prompt_text}
 
 
 if __name__ == "__main__":
