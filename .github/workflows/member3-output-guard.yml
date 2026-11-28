@@ -1,0 +1,36 @@
+name: Member 3 Output Guard
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "scanners/output_guard/**"
+      - ".github/workflows/member3-output-guard.yml"
+  push:
+    branches: [member3-output-guard]
+    paths:
+      - "scanners/output_guard/**"
+      - ".github/workflows/member3-output-guard.yml"
+
+jobs:
+  output-guard-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Compile package
+        run: python -m compileall -q scanners/output_guard
+      - name: Run core unit tests
+        run: python -m unittest scanners.output_guard.test_output_guard -v
+      - name: Run pipeline adapter tests
+        run: python -m unittest scanners.output_guard.test_pipeline_contract -v
+      - name: Run synthetic evaluation
+        run: python -m scanners.output_guard.evaluate
+      - name: Test red-team corpus
+        run: python -m unittest scanners.output_guard.test_red_team -v
+      - name: Generate red-team report
+        run: python -m scanners.output_guard.red_team
