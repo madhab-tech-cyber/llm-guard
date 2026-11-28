@@ -12,7 +12,7 @@ import yaml
 MAX_BYTES = 64 * 1024
 MAX_RULES = 100
 SAFE_ID = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
-SIGNALS = frozenset({"injection", "jailbreak_encoding", "pii", "secrets", "limits", "sanitizer"})
+SIGNALS = frozenset({"injection", "jailbreak_encoding", "pii", "secrets", "limits", "sanitizer", "toxicity", "prompt_leakage", "format", "grounding", "input"})
 ACTIONS = frozenset({"ALLOW", "BLOCK", "REDACT", "FLAG"})
 SEVERITIES = frozenset({"low", "medium", "high", "critical"})
 
